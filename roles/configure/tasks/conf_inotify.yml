@@ -1,0 +1,62 @@
+- name: Copy Sync Script to Primary Node
+  ansible.builtin.template:
+    src: files/sync-haproxy_prim.j2
+    dest: /home/{{ user }}/sync-haproxy.sh
+    owner: root
+    group: root
+    mode: '0755'
+    force: true
+  when: inventory_hostname == "Primary"
+
+- name: Copy Sync Script to Secondary Node
+  ansible.builtin.template:
+    src: files/sync-haproxy_sec.j2
+    dest: /home/{{ user }}/sync-haproxy.sh
+    owner: root
+    group: root
+    mode: '0755'
+    force: true
+  when: inventory_hostname == "Secondary"
+
+- name: Create Systemd Service
+  ansible.builtin.template:
+    src: files/sync-haproxy_service.j2
+    dest: /lib/systemd/system/sync-haproxy.service
+    owner: root
+    group: root
+    mode: '0644'
+    force: true
+
+- name: Force systemd to reread configs
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable service sync-haproxy
+  ansible.builtin.systemd:
+    name: sync-haproxy
+    enabled: true
+    state: started
+
+- name: SSH KeyGen command
+  tags: run
+  shell: > 
+    ssh-keygen -q -t ed25519 -N "" -C "creating SSH" -f /home/{{ user }}/.ssh/id_rsa
+    creates="/home/{{ user }}/.ssh/id_rsa"
+
+- name: Fetch the keyfile from the node to master
+  tags: run
+  fetch: 
+    src: "/home/{{ user }}/.ssh/id_rsa.pub"
+    dest: "buffer/{{item}}-id_rsa.pub"
+    flat: yes
+  with_items: 
+  - "{{ groups['haproxy'] }}"     
+
+- name: Copy the key add to authorized_keys using Ansible module
+  tags: runcd
+  authorized_key:
+    user: "{{ user }}"
+    state: present
+    key: "{{ lookup('file','buffer/{{item}}-id_rsa.pub')}}"
+  with_items: 
+    - "{{ groups['haproxy'] }}"       

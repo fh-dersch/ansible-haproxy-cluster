@@ -1,0 +1,19 @@
+- name: Ensure that software-properties-common is installed
+  package:
+    name: software-properties-common
+    state: present
+
+- name: Ensure that dirmngr is installed
+  package:
+    name: dirmngr
+    state: present
+
+- name: install | add repository from PPA and install its signing key
+  ansible.builtin.apt_repository:
+    repo: "{{ haproxy_ppa }}"
+    update_cache: true
+
+- name: Ensure that haproxy is installed
+  package:
+    name: haproxy
+    state: present

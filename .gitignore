@@ -1,0 +1,5 @@
+vars/haproxy_conf.yml
+vars/main.yml
+buffer/Primary-id_rsa.pub
+buffer/Secondary-id_rsa.pub
+inventory/hosts.yml

@@ -1,0 +1,4 @@
+- name: Ensure that inotify-tools is installed
+  package:
+    name: inotify-tools
+    state: present

@@ -1,0 +1,10 @@
+[Unit]
+Description=Sync HAProxy Content
+
+[Service]
+ExecStart=/home/{{ user }}/sync-haproxy.sh
+User={{ user }}
+Group={{ user }}
+
+[Install]
+WantedBy=multi-user.target

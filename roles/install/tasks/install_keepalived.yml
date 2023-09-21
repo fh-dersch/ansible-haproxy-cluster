@@ -1,0 +1,4 @@
+- name: Ensure that Keepalived is installed
+  package:
+    name: keepalived
+    state: present

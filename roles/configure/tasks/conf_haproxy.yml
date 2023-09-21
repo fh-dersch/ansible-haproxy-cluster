@@ -1,0 +1,22 @@
+- name: Creates directory for Sync
+  file:
+    path: /opt/haproxy
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ user }}"
+
+- name: Copy HAProxy Config
+  ansible.builtin.template:
+    src: files/haproxy.j2
+    dest: /opt/haproxy/haproxy.cfg
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0644'
+    force: false
+
+- name: Create a symbolic link
+  ansible.builtin.file:
+    src: /opt/haproxy/haproxy.cfg
+    dest: /etc/haproxy/haproxy.cfg
+    state: link
+    force: true

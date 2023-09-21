@@ -1,0 +1,30 @@
+- name: Start HAProxy Configuration
+  import_tasks: conf_haproxy.yml
+  tags:
+    - haconfigure
+    - configure
+    - cluster
+
+- name: Start Keepalived Configuration
+  import_tasks: conf_keepalived.yml
+  tags:
+    - kaconfigure
+    - cluster
+
+- name: Start Config Sync Configuration
+  import_tasks: conf_inotify.yml
+  tags:
+    - inconfigure
+    - cluster
+
+- name: Start Config AcmeCert
+  import_tasks: conf_acmesh.yml
+  tags:
+    - amconfigure
+    - acme
+  when: inventory_hostname == "Primary"
+
+- name: HAProxy Service Configuration
+  import_tasks: conf_haproxyservices.yml
+  tags:
+    - haconfig

@@ -1,0 +1,16 @@
+all:
+  children:
+    haproxy:
+      vars:
+        ansible_ssh_common_args:
+        ansible_become_password:
+        ansible_python_interpreter: /usr/bin/python3
+      hosts:
+        Primary:
+          ansible_host: 
+          ansible_user:
+          ansible_become: true
+        Secondary:
+          ansible_host:
+          ansible_user:
+          ansible_become: true

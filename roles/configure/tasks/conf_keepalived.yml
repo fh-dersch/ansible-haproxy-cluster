@@ -1,0 +1,25 @@
+- name: Copy Keepalived Config
+  ansible.builtin.template:
+    src: files/keepalived_prim.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: '0644'
+    force: true
+  when: inventory_hostname == "Primary"
+
+- name: Copy Keepalived Config
+  ansible.builtin.template:
+    src: files/keepalived_sec.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: '0644'
+    force: true
+  when: inventory_hostname == "Secondary"
+
+- name: Add Unbind to Sysctl
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    line: net.ipv4.ip_nonlocal_bind=1
+    

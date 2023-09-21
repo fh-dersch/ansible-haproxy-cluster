@@ -1,0 +1,45 @@
+- name: Copy HAProxy Config
+  ansible.builtin.template:
+    src: files/haproxy_temp.j2
+    dest: /opt/haproxy/haproxy.cfg
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0644'
+    force: true
+
+- name: Create a symbolic link
+  ansible.builtin.file:
+    src: /opt/haproxy/haproxy.cfg
+    dest: /etc/haproxy/haproxy.cfg
+    state: link
+    force: true
+
+- name: Restart service haproxy on primary
+  systemd:
+    state: restarted
+    name: haproxy
+  when: inventory_hostname == "Primary"
+  ignore_errors: true
+
+- name: Populate service facts
+  service_facts:
+  when: inventory_hostname == "Primary"
+
+- name: Restart service haproxy on secondary
+  systemd:
+    state: restarted
+    name: haproxy
+  when: 
+    - inventory_hostname == "Secondary"
+    - hostvars['Primary']['ansible_facts']['services']['haproxy.service']['state'] == 'running'
+
+- name: Populate service facts
+  service_facts:
+  when: inventory_hostname == "Secondary"
+
+- name: Print Error Message
+  debug:
+    msg: "HAProxy on Primary failed to start, Please Check Config"
+  when: 
+    - hostvars['Primary']['ansible_facts']['services']['haproxy.service']['state'] != 'running'
+    - inventory_hostname == "Primary"

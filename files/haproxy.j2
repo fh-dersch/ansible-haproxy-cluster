@@ -1,0 +1,120 @@
+#---------------------------------------------------------------------
+# Global Parameters
+#---------------------------------------------------------------------
+
+global
+        log                     127.0.0.1:514           local0 notice
+        pidfile                 /var/run/haproxy.pid
+        maxconn                 4096
+        daemon
+        log                     127.0.0.1               local0 debug
+        ssl-server-verify       none
+
+#---------------------------------------------------------------------
+# SSL Hardening
+#---------------------------------------------------------------------
+
+    ssl-default-bind-options                            ssl-min-ver TLSv1.2 prefer-client-ciphers
+    ssl-default-bind-ciphersuites                       TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+    ssl-default-bind-ciphers                            ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES256:ECDH+AES128:!aNULL:!SHA1:!AESCCM
+    ssl-default-server-options                          ssl-min-ver TLSv1.2
+    ssl-default-server-ciphersuites                     TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+    ssl-default-server-ciphers                          ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES256:ECDH+AES128:!aNULL:!SHA1:!AESCCM
+    tune.ssl.default-dh-param                           2048
+
+#---------------------------------------------------------------------
+# Default Parameters
+#---------------------------------------------------------------------
+
+defaults
+        mode                    http
+        log                     global
+        option                  httplog
+        option                  http-server-close
+        option                  forwardfor              except 127.0.0.0/8
+        option                  redispatch
+        retries                 3
+        timeout                 http-request            15s
+        timeout                 queue                   30s
+        timeout                 connect                 5s
+        timeout                 client                  5000
+        timeout                 server                  25s
+        timeout                 http-keep-alive         1s
+        timeout                 check                   10s
+        timeout                 tunnel                  3600s
+        timeout                 tarpit                  60s
+
+#---------------------------------------------------------------------
+# Frontend stats
+#---------------------------------------------------------------------
+
+frontend stats
+        bind                    10.168.254.253:8404
+        stats                   enable
+        stats                   uri                     /stats
+        stats                   refresh                 10s
+
+#---------------------------------------------------------------------
+# Frontend Redirect 80->443 LAN Interface
+#---------------------------------------------------------------------
+
+frontend http_redirect_lan
+        bind                    {{haproxy_lan_ip}}:80
+        redirect                scheme https            code 301 if !{ ssl_fc }
+
+#---------------------------------------------------------------------
+# Frontend Redirect 80->443 WAN Interface
+#---------------------------------------------------------------------
+
+frontend http_redirect_wan
+        bind                    {{haproxy_wan_ip}}:80
+        redirect                scheme https            code 301 if !{ ssl_fc }
+
+#---------------------------------------------------------------------
+# Frontend Application LAN Interface
+#---------------------------------------------------------------------
+
+frontend https_lan
+        mode                    http
+        bind                    {{haproxy_lan_ip}}:443     ssl crt /opt/haproxy/{{haproxy_cert_name}}
+        option                  forwardfor              header          X-Real-IP
+        http-request            set-header              X-Real-IP %[src]
+
+        #---------------------------------------------------------------------
+        # Frontend Application ACLs
+        #---------------------------------------------------------------------
+
+        acl                     acl_example                ssl_fc_sni      example.domain.com
+
+        #---------------------------------------------------------------------
+        # Backend Forwarding
+        #---------------------------------------------------------------------
+
+        use_backend             example                    if              acl_example
+
+#---------------------------------------------------------------------
+# Frontend Application WAN Interface
+#---------------------------------------------------------------------
+
+frontend https_wan
+        mode                    http
+        bind                    {{haproxy_wan_ip}}:443     ssl crt /opt/haproxy/{{haproxy_cert_name}}
+
+        #---------------------------------------------------------------------
+        # Frontend Application ACLs
+        #---------------------------------------------------------------------
+
+        acl                     acl_example                ssl_fc_sni      example.domain.com
+
+        #---------------------------------------------------------------------
+        # Backend Forwarding
+        #---------------------------------------------------------------------
+
+        use_backend             example                    if              acl_example
+
+#---------------------------------------------------------------------
+# Backend Definitions
+#---------------------------------------------------------------------
+
+backend example
+        server                  example                 1.2.3.4:443 check ssl

@@ -1,0 +1,11 @@
+- name: Manage HAProxy Service
+  hosts: haproxy
+  gather_facts: true
+  remote_user: loginuser
+  become: true
+  roles:
+    - install
+    - configure
+  vars_files:
+    - ./vars/main.yml
+    - ./vars/haproxy_conf.yml

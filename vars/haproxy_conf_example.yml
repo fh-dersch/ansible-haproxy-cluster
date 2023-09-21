@@ -1,0 +1,19 @@
+---
+ha_services:
+  - name: Example Name
+    acl_name: acl_example
+    mode: hdr_dom(host)
+    domain: example.example.com
+    use_backend: example_backend
+    scope:
+      - lan
+      - wan
+
+backends:
+  - name: example_backend
+    address: 1.2.3.4
+    port: 80
+    options: check
+    headers: 
+      - "http-response add-header X-Frame-Options SAMEORIGIN"
+      - "http-request add-header X-Forwarded-Proto https"

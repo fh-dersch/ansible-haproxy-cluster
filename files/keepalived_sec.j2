@@ -1,0 +1,52 @@
+global_defs {
+     router_id secondary
+     script_user {{ user }}
+}
+
+vrrp_script check_haproxy {
+  script "/usr/bin/systemctl is-active --quiet haproxy"
+  interval 2
+  weight 2
+}
+
+vrrp_instance HA_1 {
+      state BACKUP
+      interface {{ ansible_facts['default_ipv4']['interface'] }}
+      virtual_router_id 12
+      priority 100
+      advert_int 1
+      unicast_peer {
+         "{{ hostvars['Primary']['ansible_facts']['default_ipv4']['address'] }}"
+      }
+      authentication {
+         auth_type AH
+         auth_pass "{{keepalived_password_lan}}"
+      }
+      track_script {
+         check_haproxy
+      }
+      virtual_ipaddress {
+        {{haproxy_lan_ip}}/24 dev {{ ansible_facts['default_ipv4']['interface'] }} label {{ ansible_facts['default_ipv4']['interface'] }}:lan
+      }
+}
+
+vrrp_instance HA_2 {
+      state BACKUP
+      interface {{ ansible_facts['default_ipv4']['interface'] }}
+      virtual_router_id 13
+      priority 100
+      advert_int 1
+      unicast_peer {
+         {{ hostvars['Primary']['ansible_facts']['default_ipv4']['address'] }}
+      }
+      authentication {
+         auth_type AH
+         auth_pass "{{keepalived_password_wan}}"
+      }
+      track_script {
+         check_haproxy
+      }
+      virtual_ipaddress {
+        {{haproxy_wan_ip}}/24 dev {{ ansible_facts['default_ipv4']['interface'] }} label {{ ansible_facts['default_ipv4']['interface'] }}:wan
+      }
+}
